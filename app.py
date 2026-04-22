@@ -4,10 +4,10 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
-# 1. 페이지 설정 (가장 먼저 와야 함)
-st.set_page_config(page_title="미국주식 분석기 Pro", layout="wide", page_icon="📈")
+# 1. 페이지 설정 (요청하신 제목으로 변경)
+st.set_page_config(page_title="Stock MDU/MDD 분석기", layout="wide", page_icon="📈")
 
-# 2. 토스(Toss) 스타일 다크/라이트 모드 및 사이드바 가독성 강화 CSS
+# 2. 토스(Toss) 스타일 다크/라이트 모드 및 충돌 해결 CSS
 def inject_custom_css(is_dark):
     if is_dark:
         bg, card, text_p, text_s, border = "#101013", "#1C1C1F", "#FFFFFF", "#8B95A1", "#2C2D31"
@@ -34,21 +34,26 @@ def inject_custom_css(is_dark):
             border-right: 1px solid var(--border-color); 
         }}
         
-        /* 🔥 1. 사이드바 메뉴/글자 가독성 & 볼드(굵게) 처리 🔥 */
+        /* 사이드바 기본 텍스트 (라벨 등) */
         [data-testid="stSidebar"] p, 
-        [data-testid="stSidebar"] label, 
-        [data-testid="stSidebar"] div[data-baseweb="select"] * {{
+        [data-testid="stSidebar"] label {{
             color: var(--text-primary) !important;
             font-weight: 800 !important;
             font-size: 16px !important;
         }}
         
-        /* 폰트 일괄 적용 */
-        h1, h2, h3, p, label, span {{ font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif !important; }}
+        /* 선택창(Selectbox) 내부 텍스트를 무조건 진한 색으로 고정 */
+        [data-testid="stSidebar"] div[data-baseweb="select"] * {{
+            color: #191F28 !important;
+            font-weight: 700 !important;
+        }}
+        
+        /* 폰트 일괄 적용 (아이콘 깨짐 방지를 위해 span 태그 제외) */
+        h1, h2, h3, p, label {{ font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif !important; }}
     </style>
     """, unsafe_allow_html=True)
 
-# 3. 토스 스타일 수치 카드 커스텀 HTML 생성 함수 (색상 강제 고정용)
+# 3. 토스 스타일 수치 카드 커스텀 HTML
 def toss_metric_card(title, value, value_color="var(--text-primary)"):
     return f"""
     <div style="background-color: var(--card-bg); border-radius: 16px; padding: 24px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border: 1px solid var(--border-color); margin-bottom: 20px;">
@@ -118,8 +123,8 @@ with st.sidebar:
 # 다크모드/라이트모드 CSS 실행
 inject_custom_css(is_dark)
 
-# 7. 메인 화면 출력
-st.markdown(f"## 📈 {ticker_dict[selected_ticker]} 상세 분석")
+# 7. 메인 화면 출력 (제목 변경)
+st.markdown(f"## 📈 {ticker_dict[selected_ticker]} Stock MDU/MDD 분석기")
 st.markdown(f"<p style='color: var(--text-secondary); font-size: 15px; font-weight: 600;'>분석 기간: {start_d.strftime('%Y-%m-%d')} ~ {end_d.strftime('%Y-%m-%d')}</p>", unsafe_allow_html=True)
 
 rate = yf.download("KRW=X", period="1d", progress=False)['Close'].iloc[-1] if is_krw else 1.0
@@ -130,7 +135,7 @@ df = fetch_data(selected_ticker, start_d, end_d)
 if df is not None:
     s = calculate_advanced_stats(df, is_krw, rate)
     
-    # 🔥 2. 상단 지표 (MDD 붉은색, MDU 녹색 강제 고정) 🔥
+    # 상단 지표 (MDD 붉은색, MDU 녹색 강제 고정)
     col1, col2, col3, col4 = st.columns(4)
     with col1: st.markdown(toss_metric_card("현재주가", f"{sym}{s['current']:,.2f}"), unsafe_allow_html=True)
     with col2: st.markdown(toss_metric_card("고점대비 하락", f"{s['cur_dd']:.2f}%"), unsafe_allow_html=True)
@@ -149,7 +154,7 @@ if df is not None:
     # MDU 라인 (최저점 -> 최저점 이후 최고점)
     fig.add_trace(go.Scatter(x=[s['trough_date'], s['mdu_peak_date']], y=[s['trough'], s['mdu_peak']], mode='markers+lines', line=dict(color='#31C27C', width=2.5, dash='dot'), marker=dict(size=10, color='#31C27C'), name='MDU 구간'))
 
-    # 🔥 3. 차트 내 수치 표기 복구 및 색상 강화 🔥
+    # 차트 내 수치 표기 복구 및 색상 강화
     fig.add_annotation(
         x=s['trough_date'], y=s['trough'],
         text=f"MDD: {s['mdd']:.2f}%",
